@@ -1,4 +1,4 @@
-rules_version = '2';
+﻿rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
@@ -19,7 +19,7 @@ service cloud.firestore {
       return roleOf(userDoc());
     }
 
-    // Email першим: працює навіть якщо users/{uid} ще без role: admin
+    // Email ╨┐╨╡╤А╤И╨╕╨╝: ╨┐╤А╨░╤Ж╤О╤Ф ╨╜╨░╨▓╤Ц╤В╤М ╤П╨║╤Й╨╛ users/{uid} ╤Й╨╡ ╨▒╨╡╨╖ role: admin
     function isAdmin() {
       return signedIn() && (isAdminEmail() || myRole() == 'admin');
     }
@@ -58,10 +58,28 @@ service cloud.firestore {
         && request.resource.data.get('isAdmin', false) == (roleOf(resource.data) == 'admin');
 
       allow update, delete: if isAdmin();
+
+      // ----- users/{userId}/questProgress (╨┐╤А╨╛╨│╤А╨╡╤Б ╨┐╤А╨╛╤Е╨╛╨┤╨╢╨╡╨╜╨╜╤П ╨║╨▓╨╡╤Б╤В╤Ц╨▓) -----
+      // ╨С╨╡╨╖ ╤Ж╤М╨╛╨│╨╛ ╨▒╨╗╨╛╨║╤Г markPartCompleted() ╤Г progressData.js ╨┐╨░╨┤╨░╨▓ ╨╖ permission-denied,
+      // ╤Ц ╨╜╨░╨│╨╛╤А╨╛╨┤╨░ (XP/╨╝╨╛╨╜╨╡╤В╨╕) ╨╜╤Ц╨║╨╛╨╗╨╕ ╨╜╨╡ ╨╜╨░╤А╨░╤Е╨╛╨▓╤Г╨▓╨░╨╗╨░╤Б╤М.
+      match /questProgress/{questId} {
+        allow read, write: if signedIn() && (request.auth.uid == userId || isAdmin());
+      }
+
+      // ----- users/{userId}/manualAchievements (╨░╤З╨╕╨▓╨║╨╕, ╨▓╨╕╨┤╨░╨╜╤Ц ╨░╨┤╨╝╤Ц╨╜╨╛╨╝ ╨▓╤А╤Г╤З╨╜╤Г) -----
+      match /manualAchievements/{achievementId} {
+        allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+        allow write: if isAdmin();
+      }
+
+      // ----- users/{userId}/achievementProgress (╨║╨╛╨╗╨╕ ╤А╨╛╨╖╨▒╨╗╨╛╨║╨╛╨▓╨░╨╜╨╛/╨┐╨╡╤А╨╡╨│╨╗╤П╨╜╤Г╤В╨╛) -----
+      match /achievementProgress/{achievementId} {
+        allow read, write: if signedIn() && (request.auth.uid == userId || isAdmin());
+      }
     }
 
-    // ----- quests (спільна колекція) -----
-    // quests/{questId} — authorId у полях документа
+    // ----- quests (╤Б╨┐╤Ц╨╗╤М╨╜╨░ ╨║╨╛╨╗╨╡╨║╤Ж╤Ц╤П) -----
+    // quests/{questId} тАФ authorId ╤Г ╨┐╨╛╨╗╤П╤Е ╨┤╨╛╨║╤Г╨╝╨╡╨╜╤В╨░
     match /quests/{questId} {
       allow read: if signedIn() && (
         resource.data.status == 'published'
@@ -75,7 +93,7 @@ service cloud.firestore {
         && request.resource.data.id == questId
         && request.resource.data.status in ['draft', 'pending_review'];
 
-      // Казкар: свої квести, без прямої публікації
+      // ╨Ъ╨░╨╖╨║╨░╤А: ╤Б╨▓╨╛╤Ч ╨║╨▓╨╡╤Б╤В╨╕, ╨▒╨╡╨╖ ╨┐╤А╤П╨╝╨╛╤Ч ╨┐╤Г╨▒╨╗╤Ц╨║╨░╤Ж╤Ц╤Ч
       allow update: if isKazkar()
         && isActive()
         && resource.data.authorId == request.auth.uid
@@ -84,7 +102,7 @@ service cloud.firestore {
         && request.resource.data.status in ['draft', 'pending_review', 'rejected', 'archived']
         && request.resource.data.status != 'published';
 
-      // Адмін: погодити / відхилити / будь-яка правка
+      // ╨Р╨┤╨╝╤Ц╨╜: ╨┐╨╛╨│╨╛╨┤╨╕╤В╨╕ / ╨▓╤Ц╨┤╤Е╨╕╨╗╨╕╤В╨╕ / ╨▒╤Г╨┤╤М-╤П╨║╨░ ╨┐╤А╨░╨▓╨║╨░ (╨▓╨║╨╗╤О╤З╨╜╨╛ ╨╖ ╨┐╤А╤П╨╝╨╛╤О ╨┐╤Г╨▒╨╗╤Ц╨║╨░╤Ж╤Ц╤Ф╤О)
       allow update: if isAdmin();
 
       allow delete: if isAdmin()
@@ -95,7 +113,7 @@ service cloud.firestore {
         );
     }
 
-    // ----- invite codes (казкар) -----
+    // ----- invite codes (╨║╨░╨╖╨║╨░╤А) -----
     match /inviteCodes/{code} {
       allow read: if signedIn();
 
@@ -106,6 +124,25 @@ service cloud.firestore {
         && request.resource.data.usedCount == resource.data.usedCount + 1;
 
       allow create, delete: if isAdmin();
+    }
+
+    // ----- activityLog (╤Б╤В╤А╤Ц╤З╨║╨░ ╨░╨║╤В╨╕╨▓╨╜╨╛╤Б╤В╤Ц ╨╜╨░ ╨░╨┤╨╝╤Ц╨╜-╨┤╨░╤И╨▒╨╛╤А╨┤╤Ц) -----
+    match /activityLog/{eventId} {
+      allow read: if isAdmin();
+      allow create: if signedIn();
+      allow update, delete: if false;
+    }
+
+    // ----- achievements (╨▓╨╕╨╖╨╜╨░╤З╨╡╨╜╨╜╤П ╨░╤З╨╕╨▓╨╝╨╡╨╜╤В╤Ц╨▓, ╤Б╤В╨▓╨╛╤А╤О╤Ф ╨░╨┤╨╝╤Ц╨╜) -----
+    match /achievements/{achievementId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // ----- news (╨╜╨╛╨▓╨╕╨╜╨╕ ╨╜╨░ ╨У╨╛╨╗╨╛╨▓╨╜╤Ц╨╣, ╤Б╤В╨▓╨╛╤А╤О╤Ф ╨░╨┤╨╝╤Ц╨╜) -----
+    match /news/{newsId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
     }
   }
 }
