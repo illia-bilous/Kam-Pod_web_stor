@@ -25,7 +25,7 @@ service cloud.firestore {
     }
 
     function isKazkar() {
-      return signedIn() && (myRole() == 'kazkar' || myRole() == 'admin');
+      return signedIn() && (isAdminEmail() || myRole() == 'kazkar' || myRole() == 'admin');
     }
 
     function isActive() {
@@ -34,7 +34,10 @@ service cloud.firestore {
 
     function isAdminEmail() {
       return signedIn()
-        && request.auth.token.email == 'kn1b24.kushnir@kpnu.edu.ua';
+        && request.auth.token.email in [
+          'kn1b24.kushnir@kpnu.edu.ua',
+          'fkola821@gmail.com'
+        ];
     }
 
     // ----- users -----
@@ -91,7 +94,10 @@ service cloud.firestore {
         && isActive()
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.id == questId
-        && request.resource.data.status in ['draft', 'pending_review'];
+        && (
+          request.resource.data.status in ['draft', 'pending_review']
+          || (isAdmin() && request.resource.data.status == 'published')
+        );
 
       // Казкар: свої квести, без прямої публікації
       allow update: if isKazkar()

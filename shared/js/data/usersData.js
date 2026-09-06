@@ -30,6 +30,7 @@ export const USER_STATUS = Object.freeze({
 /** Email, яким при реєстрації автоматично ставиться role: admin */
 const ADMIN_EMAILS = [
   "kn1b24.kushnir@kpnu.edu.ua",
+  "fkola821@gmail.com",
 ];
 
 function mapAuthError(error) {
