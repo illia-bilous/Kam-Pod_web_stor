@@ -36,7 +36,8 @@ service cloud.firestore {
       return signedIn()
         && request.auth.token.email in [
           'kn1b24.kushnir@kpnu.edu.ua',
-          'fkola821@gmail.com'
+          'fkola821@gmail.com',
+          'po1b24.fedorova@kpnu.edu.ua'
         ];
     }
 

@@ -31,6 +31,7 @@ export const USER_STATUS = Object.freeze({
 const ADMIN_EMAILS = [
   "kn1b24.kushnir@kpnu.edu.ua",
   "fkola821@gmail.com",
+  "po1b24.fedorova@kpnu.edu.ua",
 ];
 
 function mapAuthError(error) {
@@ -99,6 +100,25 @@ async function fetchUserProfile(uid) {
   }
 
   return buildUser(uid, { ...data, role, status });
+}
+
+async function createMissingUserProfile(user) {
+  const normalizedEmail = (user.email || "").trim().toLowerCase();
+  const role = ADMIN_EMAILS.includes(normalizedEmail) ? ROLES.ADMIN : ROLES.USER;
+  const profile = {
+    name: user.displayName || "",
+    email: normalizedEmail,
+    birthDate: "",
+    role,
+    status: USER_STATUS.ACTIVE,
+    isAdmin: role === ROLES.ADMIN,
+    coins: 0,
+    xp: 0,
+    createdAt: serverTimestamp(),
+  };
+
+  await setDoc(doc(db, "users", user.uid), profile);
+  return buildUser(user.uid, { ...profile, createdAt: new Date().toISOString() });
 }
 
 /**
@@ -208,7 +228,12 @@ export async function registerUser({
       createdAt: serverTimestamp(),
     };
 
-    await setDoc(doc(db, "users", user.uid), profile);
+    try {
+      await setDoc(doc(db, "users", user.uid), profile);
+    } catch (error) {
+      await user.delete().catch(() => {});
+      throw error;
+    }
 
     return {
       success: true,
@@ -231,13 +256,10 @@ export async function loginUser(email, password) {
       normalizedEmail,
       password,
     );
-    const profile = await fetchUserProfile(credential.user.uid);
+    let profile = await fetchUserProfile(credential.user.uid);
 
     if (!profile) {
-      return {
-        success: false,
-        error: "Профіль користувача не знайдено в базі даних",
-      };
+      profile = await createMissingUserProfile(credential.user);
     }
 
     if (profile.status === USER_STATUS.BLOCKED) {
