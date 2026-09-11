@@ -8,6 +8,11 @@ import {
 } from "../../shared/js/data/questsData.js";
 import { getCurrentUser, getCurrentRole, ROLES } from "../../shared/js/data/usersData.js";
 import { logActivity, ACTIVITY_TYPES } from "../../shared/js/data/activityData.js";
+import {
+  GAMES,
+  formatGameLabel,
+  getGameByBuildFolder,
+} from "../../shared/js/data/gamesCatalog.js";
 
 const params = new URLSearchParams(window.location.search);
 const editId = params.get("id");
@@ -15,7 +20,7 @@ const editId = params.get("id");
 let draft = createEmptyQuest({
   story: { pages: [] },
   comic: { scenes: [] },
-  game: { buildFolder: "game-1", lockedUntil: "story", geo: null },
+  game: { buildFolder: "", lockedUntil: "story", geo: null },
 });
 
 function readAsDataUrl(blob) {
@@ -178,6 +183,44 @@ const gameGeoLat = document.getElementById("gameGeoLat");
 const gameGeoLng = document.getElementById("gameGeoLng");
 const gameGeoRadius = document.getElementById("gameGeoRadius");
 const useCurrentLocationBtn = document.getElementById("useCurrentLocationBtn");
+
+function populateGameSelect(selectedFolder) {
+  gameBuild.innerHTML = "";
+  const empty = document.createElement("option");
+  empty.value = "";
+  empty.textContent = "— не вибрано —";
+  gameBuild.appendChild(empty);
+
+  GAMES.forEach((game) => {
+    const option = document.createElement("option");
+    option.value = game.buildFolder;
+    option.textContent = formatGameLabel(game);
+    gameBuild.appendChild(option);
+  });
+
+  if (selectedFolder && !GAMES.some((game) => game.buildFolder === selectedFolder)) {
+    const option = document.createElement("option");
+    option.value = selectedFolder;
+    option.textContent = selectedFolder;
+    gameBuild.appendChild(option);
+  }
+
+  gameBuild.value = selectedFolder || "";
+}
+
+function applyGameGeoDefaults(game, { overwrite = false } = {}) {
+  if (!game?.geo) return;
+  const empty =
+    !gameGeoLat.value.trim() &&
+    !gameGeoLng.value.trim() &&
+    !gameGeoPlace.value.trim();
+  if (!overwrite && !empty) return;
+  gameGeoCity.value = game.geo.city;
+  gameGeoPlace.value = game.geo.placeName;
+  gameGeoLat.value = game.geo.lat;
+  gameGeoLng.value = game.geo.lng;
+  gameGeoRadius.value = game.geo.radius;
+}
 
 function buildGeoPayload() {
   const lat = gameGeoLat.value.trim();
@@ -345,7 +388,7 @@ function fillMetaFields() {
   metaDescription.value = draft.description || "";
   metaXp.value = draft.rewards?.xp ?? 20;
   metaCoins.value = draft.rewards?.coins ?? 10;
-  gameBuild.value = draft.game?.buildFolder || "game-1";
+  populateGameSelect(draft.game?.buildFolder || "");
   gameLock.value = draft.game?.lockedUntil || "story";
   showPreview(metaCoverPreview, draft.coverImage);
 
@@ -355,7 +398,15 @@ function fillMetaFields() {
   gameGeoLat.value = geo?.lat ?? "";
   gameGeoLng.value = geo?.lng ?? "";
   gameGeoRadius.value = geo?.radius ?? 100;
+
+  const selectedGame = getGameByBuildFolder(gameBuild.value);
+  if (selectedGame) applyGameGeoDefaults(selectedGame, { overwrite: false });
 }
+
+gameBuild.addEventListener("change", () => {
+  const selectedGame = getGameByBuildFolder(gameBuild.value);
+  applyGameGeoDefaults(selectedGame, { overwrite: true });
+});
 
 metaCover.addEventListener("change", async () => {
   try {

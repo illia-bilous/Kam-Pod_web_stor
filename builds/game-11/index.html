@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity Web Player | Сонячний Кристал</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
+  </head>
+  <body>
+    <div id="unity-container" class="unity-mobile">
+      <canvas id="unity-canvas" width=1080 height=1920 tabindex="-1"></canvas>
+      <div id="unity-loading-bar">
+        <div id="unity-logo"></div>
+        <div id="unity-progress-bar-empty">
+          <div id="unity-progress-bar-full"></div>
+        </div>
+      </div>
+      <div id="unity-warning"> </div>
+      <div id="unity-footer">
+        <div id="unity-logo-title-footer"></div>
+        <div id="unity-fullscreen-button"></div>
+        <div id="unity-build-title">Сонячний Кристал</div>
+      </div>
+    </div>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+      var gameWidth = 1080;
+      var gameHeight = 1920;
+
+      function resizeGame() {
+        var container = document.querySelector("#unity-container");
+        if (!container || !canvas) return;
+
+        var cw = container.clientWidth;
+        var ch = container.clientHeight;
+        if (cw <= 0 || ch <= 0) return;
+
+        var scale = Math.min(cw / gameWidth, ch / gameHeight);
+        var displayW = Math.floor(gameWidth * scale);
+        var displayH = Math.floor(gameHeight * scale);
+
+        canvas.style.width = displayW + "px";
+        canvas.style.height = displayH + "px";
+        canvas.style.left = Math.floor((cw - displayW) / 2) + "px";
+        canvas.style.top = Math.floor((ch - displayH) / 2) + "px";
+      }
+
+      function unityShowBanner(msg, type) {
+        var warningBanner = document.querySelector("#unity-warning");
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+        }
+        var div = document.createElement('div');
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type == 'error') div.style = 'background: red; padding: 10px;';
+        else {
+          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+          setTimeout(function() {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/denna-vezha.loader.js";
+      var config = {
+        arguments: [],
+        dataUrl: buildUrl + "/denna-vezha.data.br",
+        frameworkUrl: buildUrl + "/denna-vezha.framework.js.br",
+        codeUrl: buildUrl + "/denna-vezha.wasm.br",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "Сонячний Кристал",
+        productVersion: "1.0",
+        showBanner: unityShowBanner,
+        matchWebGLToCanvasSize: false,
+      };
+
+      var meta = document.createElement('meta');
+      meta.name = 'viewport';
+      meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+      document.getElementsByTagName('head')[0].appendChild(meta);
+
+      canvas.className = "unity-mobile";
+      canvas.width = gameWidth;
+      canvas.height = gameHeight;
+      resizeGame();
+      window.addEventListener("resize", resizeGame);
+
+      document.querySelector("#unity-loading-bar").style.display = "block";
+
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
+              }).then((unityInstance) => {
+                document.querySelector("#unity-loading-bar").style.display = "none";
+                resizeGame();
+                document.querySelector("#unity-fullscreen-button").onclick = () => {
+                  unityInstance.SetFullscreen(1);
+                };
+
+              }).catch((message) => {
+                alert(message);
+              });
+            };
+
+      document.body.appendChild(script);
+
+    </script>
+  </body>
+</html>

@@ -2,6 +2,7 @@ import { getQuestById, QUEST_STATUS, isPublished } from "../../shared/js/data/qu
 import { getCurrentUser, canAccessAdminPanel } from "../../shared/js/data/usersData.js";
 import { markPartCompleted } from "../../shared/js/data/progressData.js";
 import { getCurrentPosition, distanceMeters, recordQuestDistance } from "../../shared/js/data/distanceData.js";
+import { getGameLabel } from "../../shared/js/data/gamesCatalog.js";
 
 const params = new URLSearchParams(window.location.search);
 const questId = params.get("id");
@@ -200,9 +201,15 @@ function renderMode(mode) {
     return;
   }
 
+  const gameLabel = getGameLabel(build)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
   panelEl.innerHTML = `
     <div class="quest-game-cta">
       <p class="quest-game-cta__title">ГОТОВІ ДО ПРИГОД?</p>
+      <p class="page-placeholder" style="margin-top:8px;">${gameLabel}</p>
       <button type="button" class="btn-logout" id="startGameBtn">ГРАТИ</button>
       <p id="gameResultLabel" class="page-placeholder" style="margin-top:12px;" hidden></p>
     </div>
@@ -295,7 +302,7 @@ function openGameFullscreen(build) {
       style="width:100%; height:100%; border:none; display:block;"
       allow="fullscreen"
       allowfullscreen
-      title="Гра квесту"
+      title="${getGameLabel(build) || "Гра квесту"}"
     ></iframe>
   `;
   document.body.appendChild(overlay);
